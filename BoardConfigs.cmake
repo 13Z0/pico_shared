@@ -630,6 +630,50 @@ elseif ( HW_CONFIG EQUAL 15 )
         set(GPIOHSTXINVERTED 1 CACHE STRING "Set to 1 if HSTX pins are inverted: D- = D+ - 1, not inverted (default): D- = D+ + 1")
     endif()
     set(PSRAM_CS_PIN 8 CACHE STRING "Select the GPIO pin for PSRAM chip select")
+elseif ( HW_CONFIG EQUAL 16 )
+    # --------------------------------------------------------------------
+    # Waveshare RP2350-PiZero (z0p2): RP2350B, 16 MB flash, no HSTX.
+    # HDMI through PicoDVI on PIO0 with GPIO base 16 (the library does this
+    # for pins > 32): TMDS 0 (blue) GPIO36/37, TMDS 1 (green) GPIO34/35,
+    # TMDS 2 (red) GPIO32/33, clock GPIO38/39, pairs not inverted.
+    # I2S audio (PCM5102A module) on PIO1: DIN GPIO10, BCK GPIO11, LRCK GPIO12.
+    # USB keyboard on the main USB-C connector (native USB host, OTG adapter).
+    # The PIO-USB connector is the power input and is not used for keyboards.
+    # NES pad: CLK GPIO4, LATCH GPIO5, DATA GPIO7 (single pad, PIO1).
+    # SD card on SPI1: SCK 30, MOSI 31, MISO 40, CS 43.
+    # PSRAM is optional: probed on the default chip select (GPIO47), ROMs go
+    # to flash when none is found.
+    # Runs at 252 MHz; the PiZero does not hold a higher clock with HDMI.
+    # --------------------------------------------------------------------
+    set(PICO_BOARD "waveshare_rp2350_pizero" )
+    set(DVICONFIG "dviConfig_WaveShareRp2350" CACHE STRING "Select a default pin configuration from common_dvi_pin_configs.h")
+    set(LED_GPIO_PIN "-1" CACHE STRING "Select the GPIO pin for LED") # the PiZero has no user LED
+    set(SD_CS "43" CACHE STRING "Specify the Chip Select GPIO pin for the SD card")
+    set(SD_SCK "30" CACHE STRING "Specify de Clock GPIO pin for the SD card")
+    set(SD_MOSI "31" CACHE STRING "Select the Master Out Slave In GPIO pin for the SD card")
+    set(SD_MISO "40" CACHE STRING "Select the Master In Slave Out GPIO pin for the SD card")
+    set(SD_SPI "spi1" CACHE STRING "Select the SPI bus for SD card")
+    set(NES_CLK "4" CACHE STRING "Select the Clock GPIO pin for NES controller")
+    set(NES_DATA "7" CACHE STRING "Select the Data GPIO pin for NES controller")
+    set(NES_LAT "5" CACHE STRING "Select the Latch GPIO pin for NES controller")
+    set(NES_PIO "pio1" CACHE STRING "Select the PIO for NES controller")
+    set(NES_CLK_1 "-1" CACHE STRING "Select the Clock GPIO pin for second NES controller")
+    set(NES_DATA_1 "-1" CACHE STRING "Select the Data GPIO pin for second NES controller")
+    set(NES_LAT_1 "-1" CACHE STRING "Select the Latch GPIO pin for second NES controller")
+    set(NES_PIO_1 "pio1" CACHE STRING "Select the PIO for second NES controller")
+    set(WII_SDA "-1" CACHE STRING "Select the SDA GPIO pin for Wii Classic controller")
+    set(WII_SCL "-1" CACHE STRING "Select the SCL GPIO pin for Wii Classic controller")
+    set(WIIPAD_I2C "i2c1" CACHE STRING "Select the I2C bus for Wii Classic controller")
+    set(UART_ENABLED 1 CACHE STRING "Enable UART output")
+    set(USE_I2S_AUDIO "PICO_AUDIO_I2S_DRIVER_PCM5000A" CACHE STRING "Enable I2S audio output")
+    set(PICO_AUDIO_I2S_DATA_PIN 10 CACHE STRING "Select the GPIO pin for I2S data")
+    set(PICO_AUDIO_I2S_CLOCK_PIN_BASE 11 CACHE STRING "Select the GPIO pin for I2S clock")
+    set(PICO_AUDIO_I2S_PIO 1 CACHE STRING "Select the PIO for I2S audio output")
+    set(PICO_AUDIO_I2S_CLOCK_PINS_SWAPPED 0 CACHE STRING "Set to 1 if the I2S clock pins are swapped")
+    set(PICO_AUDIO_I2S_RESET_PIN -1 CACHE STRING "Select the GPIO pin for I2S reset")
+    set(PIO_USB_USE_PIO 2 CACHE BOOL "Select the PIO used for PIO-USB")
+    set(PIO_DP_PLUS_PIN -1 CACHE STRING "PIO USB DP pin.")
+    set(FLASH_RESERVED_TOP 266240 CACHE STRING "Bytes at the end of flash that ROMs must not overwrite") # 260 KB, pico-launcher
 endif ( )
 if ( NOT DEFINED FLASH_RESERVED_TOP )
     set(FLASH_RESERVED_TOP 0 CACHE STRING "Bytes at the end of flash that ROMs must not overwrite")

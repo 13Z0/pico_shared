@@ -11,7 +11,7 @@
 #define FLASHPARAM_MAX_FREQ_KHZ 324000 
 // Because of high overclock, RP2450-Pizero needs high voltage for stable image. 
 // THIS MAY OVERHEAT AND DAMAGE THE CPU, USE HEATSINK!!!
-#if HW_CONFIG == 7   
+#if HW_CONFIG == 7 || HW_CONFIG == 16
 // 1_90 2_00 : Unstable image during gameplay
 // 2_35 : Stable image during gameplay, but random reboots.
 #define FLASHPARAM_MAX_VOLTAGE vreg_voltage::VREG_VOLTAGE_2_50
@@ -198,7 +198,7 @@ namespace Frens
     ///   the built-in port: delete the settings file on a PC.
     void reconcileSettingsWithFlashParams()
     {
-#if HW_CONFIG != 7
+#if HW_CONFIG != 7 && HW_CONFIG != 16
         bool dirty = false;
         const FlashParams *params = getFlashParams();
         // Left alone, the menu shows Overclock ON at the normal clock, and the next save

@@ -5514,7 +5514,7 @@ int showSettingsMenu(bool calledFromGame)
     }
     if (applySettings && (rval == 0 || rval == 5))
     {
-#if HW_CONFIG != 7
+#if HW_CONFIG != 7 && HW_CONFIG != 16
         // Enabling overclock (OFF->ON) boots into a higher clock. If that target
         // exceeds the safe default, warn first and let the user back out. Checked
         // before the commit below, while settings still holds the old value.
@@ -5551,7 +5551,7 @@ int showSettingsMenu(bool calledFromGame)
         // Clock Fix with FlashParams, rewrite FlashParams and reboot. Both go
         // in one write. writeFlashParamsToFlash arms the watchdog and never
         // returns.
-#if HW_CONFIG != 7
+#if HW_CONFIG != 7 && HW_CONFIG != 16
         const bool highClock = settings.flags.overclock || settings.flags.useFM;
         uint32_t liveKHz   = clock_get_hz(clk_sys) / 1000;
         uint32_t targetKHz = highClock ? Frens::getMaxFreqKHz() : Frens::getMinFreqKHz();

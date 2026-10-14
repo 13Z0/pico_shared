@@ -18,7 +18,7 @@ function usage() {
 	echo "  -d: build in DEBUG configuration"
 	echo "  -2: build for Pico 2 board (RP2350)"
 	echo "  -r: build for Pico 2 board (RP2350) with riscv core"
-	echo "  -u: (RP2350 only, must also use -2) enable PIO USB support (RP2350 only) disabled by default except for Waveshare RP2350-PiZero and Adafruit Fruit Jam."
+	echo "  -u: (RP2350 only, must also use -2) enable PIO USB support (RP2350 only) disabled by default except for HWCONFIG 7, 8, 9 and 14."
 	echo "  -w: build for Pico_w or Pico2_w"
 	echo "  -b: (RP2350 only, must also use -2) build for the resident emuLoader bootloader (passes -DBUILD_FOR_BOOTLOADER=ON;"
 	echo "      relinks the image to the application partition at 0x10080000 instead of 0x10000000)."
@@ -44,6 +44,7 @@ function usage() {
 	echo "     13: Murmulator M2 (rp2350 only)"
 	echo "     14: Adafruit Feather RP2350 with TLV320DAC3100 I2S DAC and sdcard breakout board and PIO USB."
 	echo "     15: Olimex RP2040-PICO-PC with a Pico 2 (rp2350 only)"
+	echo "     16: Waveshare RP2350-PiZero (z0p2): PicoDVI video on GPIO32-39, I2S audio, USB keyboard (rp2350 only)"
 	echo "  -m: Run cmake only, do not build the project"
 	echo "  -e: use the pico-extras based I2S audio driver (default: legacy custom driver)"
 	echo "  -h: display this help"
@@ -110,8 +111,8 @@ while getopts "muwhd2rc:t:p:iDeb" opt; do
       ;;
     c)
       HWCONFIG=$OPTARG
-	  # imply pico2 for HWCONFIG 5, 7, 8, 9, 13, 14 and 15
-	  if [[ $HWCONFIG -eq 5 || $HWCONFIG -eq 7 || $HWCONFIG -eq 8 || $HWCONFIG -eq 9 || $HWCONFIG -eq 13 || $HWCONFIG -eq 14 || $HWCONFIG -eq 15 ]] ; then
+	  # imply pico2 for HWCONFIG 5, 7, 8, 9, 13, 14, 15 and 16
+	  if [[ $HWCONFIG -eq 5 || $HWCONFIG -eq 7 || $HWCONFIG -eq 8 || $HWCONFIG -eq 9 || $HWCONFIG -eq 13 || $HWCONFIG -eq 14 || $HWCONFIG -eq 15 || $HWCONFIG -eq 16 ]] ; then
 		  PICO_BOARD=pico2
 		  PICO_PLATFORM=rp2350-arm-s
 		  picoarmIsSet=0    # not set via command line argument
@@ -217,8 +218,8 @@ if [[ $PICO_PLATFORM == rp2350* ]] ; then
 		exit 1
 	fi
 else
-	# HWCONFIG 5, 7, 8, 9 and 15 is not compatible with pico
-	if [[ $HWCONFIG -eq 5 || $HWCONFIG -eq 7 || $HWCONFIG -eq 8 || $HWCONFIG -eq 9 || $HWCONFIG -eq 15 ]] ; then
+	# HWCONFIG 5, 7, 8, 9, 15 and 16 is not compatible with pico
+	if [[ $HWCONFIG -eq 5 || $HWCONFIG -eq 7 || $HWCONFIG -eq 8 || $HWCONFIG -eq 9 || $HWCONFIG -eq 15 || $HWCONFIG -eq 16 ]] ; then
 		echo "HWCONFIG $HWCONFIG is not compatible with Pico"
 		exit 1
 	fi
@@ -337,8 +338,12 @@ case $HWCONFIG in
 		UF2="OlimexPicoPC"
 		USESIMPLEFILENAMES=1
 		;;
+	16)
+		UF2="WaveShareRP2350PiZero_z0p2_I2S"
+		USESIMPLEFILENAMES=1
+		;;
 	*)
-		echo "Invalid value: $HWCONFIG specified for option -c, must be 1 to 15"
+		echo "Invalid value: $HWCONFIG specified for option -c, must be 1 to 16"
 		exit 1
 		;;
 esac
@@ -427,4 +432,3 @@ if [ -f build/${APP}.uf2 ] ; then
 	fi
 #	picotool info releases/${UF2}
 fi
-
