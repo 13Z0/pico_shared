@@ -29,7 +29,7 @@ enum MenuSettingsIndex {
     MOPT_AUTO_INSERT_FDS_DISK_A, // Auto-insert disk side A at boot (On) or wait for user A press (Off)
     MOPT_AUTO_SWAP_FDS_DISK, // New menu option for automatically swapping FDS disk sides when loading a .fds file
     MOPT_FDS_DISK_SWAP,
-    MOPT_OVERCLOCK,
+    MOPT_OVERCLOCK,          // ROM browser only; 2 offers it in-game as well (games without a browser)
     MOPT_FM_AUDIO,
     MOPT_ENTER_BOOTSEL_MODE,
     MOPT_CONTROLLER_TEST,

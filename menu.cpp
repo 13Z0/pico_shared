@@ -4122,8 +4122,10 @@ int showSettingsMenu(bool calledFromGame)
         if (i == MOPT_ENTER_BOOTSEL_MODE) continue;
         if (i == MOPT_USB_DRIVE_MODE) continue;
         // Overclock is reachable only from the file-browser menu — applying it
-        // mid-game would reboot the box and drop unsaved emulator state.
-        if (i == MOPT_OVERCLOCK && calledFromGame) continue;
+        // mid-game would reboot the box and drop unsaved emulator state. An
+        // emulator without a file browser (an arcade game) can offer it in-game
+        // with a visibility of 2: it keeps no state a reboot would lose.
+        if (i == MOPT_OVERCLOCK && calledFromGame && g_settings_visibility[MOPT_OVERCLOCK] < 2) continue;
         // The button layout goes right before the rapid fire entries: it is appended
         // at the end of the enum, but it belongs with the other button settings.
         if (i == MOPT_RAPID_FIRE_ON_A && g_settings_visibility[MOPT_BUTTON_LAYOUT] > 0)
