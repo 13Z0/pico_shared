@@ -4124,8 +4124,9 @@ int showSettingsMenu(bool calledFromGame)
         // Overclock is reachable only from the file-browser menu — applying it
         // mid-game would reboot the box and drop unsaved emulator state. An
         // emulator without a file browser (an arcade game) can offer it in-game
-        // with a visibility of 2: it keeps no state a reboot would lose.
-        if (i == MOPT_OVERCLOCK && calledFromGame && g_settings_visibility[MOPT_OVERCLOCK] < 2) continue;
+        // with a visibility of 2: it keeps no state a reboot would lose. Not a
+        // continue: the Video Clock Fix still has to be listed at its place, below.
+        const bool overclockHidden = i == MOPT_OVERCLOCK && calledFromGame && g_settings_visibility[MOPT_OVERCLOCK] < 2;
         // The button layout goes right before the rapid fire entries: it is appended
         // at the end of the enum, but it belongs with the other button settings.
         if (i == MOPT_RAPID_FIRE_ON_A && g_settings_visibility[MOPT_BUTTON_LAYOUT] > 0)
@@ -4136,7 +4137,7 @@ int showSettingsMenu(bool calledFromGame)
         // because loading a cartridge resets every drive. In-game only.
         if (i == MOPT_DISK && !calledFromGame) continue;
         // -1 is always hidden
-        if (g_settings_visibility[i] >= 0)
+        if (g_settings_visibility[i] >= 0 && !overclockHidden)
         {
             if (g_settings_visibility[i] || (i == MenuSettingsIndex::MOPT_EXIT_GAME || i == MenuSettingsIndex::MOPT_SAVE_RESTORE_STATE || i == MenuSettingsIndex::MOPT_RESET_GAME) && calledFromGame)
             {
@@ -4166,8 +4167,10 @@ int showSettingsMenu(bool calledFromGame)
             visibleIndices[visibleCount++] = MOPT_NES_PALETTE;
         }
         // The Video Clock Fix goes right after Overclock, whether or not that one is
-        // shown: both set the clocks and reboot to apply, so it is rom-browser only too.
-        if (i == MOPT_OVERCLOCK && !calledFromGame && g_settings_visibility[MOPT_HSTX_CLOCK_FIX] > 0)
+        // shown: both set the clocks and reboot to apply, so it is rom-browser only too,
+        // unless the emulator gives it a visibility of 2, as with Overclock.
+        if (i == MOPT_OVERCLOCK && g_settings_visibility[MOPT_HSTX_CLOCK_FIX] > 0 &&
+            (!calledFromGame || g_settings_visibility[MOPT_HSTX_CLOCK_FIX] >= 2))
         {
             visibleIndices[visibleCount++] = MOPT_HSTX_CLOCK_FIX;
         }
