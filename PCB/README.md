@@ -59,9 +59,9 @@ Optionally, female socket headers can be soldered into the through-holes. The mi
 
 ![PicoNES v2.6, front and back](https://github.com/user-attachments/assets/2bbc846d-56b1-4528-9899-01bc9b32ce11)
 
-Assembled board with two NES controllers (an earlier version is shown; v2.6 is assembled the same way):
+Assembled with a Pimoroni Pico Plus 2 on pin headers:
 
-![Assembled board with two NES controllers](https://github.com/user-attachments/assets/d40ed98f-4632-4161-986a-732d35290fac)
+![PicoNES v2.6, assembled](images/picones_v2.6_assembled.jpg)
 
 ### Bill of materials
 
