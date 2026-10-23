@@ -20,12 +20,12 @@ All boards require soldering.
 
 ## Overview
 
-| Board | Gerber file | Microcontroller board | Controller ports | Designer | Build instructions |
-| ----- | ----------- | --------------------- | ---------------- | -------- | ------------------ |
-| PicoNES v2.6 | [pico_nesPCB_v2.6.zip](pico_nesPCB_v2.6.zip) | Raspberry Pi Pico, Pico 2 or Pimoroni Pico Plus 2 | 2 × NES | John Park | [This page](#picones-v26-nes-controller-ports) |
-| PicoNES v2.8 SNES | [pico_nesPCB_v2.8_SNES_PORTS.zip](pico_nesPCB_v2.8_SNES_PORTS.zip) | Raspberry Pi Pico, Pico 2 or Pimoroni Pico Plus 2 | 2 × SNES | John Park | [This page](#picones-v28-snes-controller-ports) |
-| PicoNES Mini v2.0 | [Gerber_PicoNES_Mini_PCB_v2.0.zip](Gerber_PicoNES_Mini_PCB_v2.0.zip) | Waveshare RP2040-Zero or RP2350-Zero | 2 × NES | Gavin Knight | [Instructables, step 1](https://www.instructables.com/PicoNES-RaspberryPi-Pico-Based-NES-Emulator/#step1) |
-| PicoNES Micro v1.2 | [Gerber_PicoNES_Micro_v1.2.zip](Gerber_PicoNES_Micro_v1.2.zip) | Waveshare RP2350-USB-A | None, USB controller only | Gavin Knight | [Instructables, step 2](https://www.instructables.com/PicoNES-RaspberryPi-Pico-Based-NES-Emulator/#step2) |
+| Board | Picture | Gerber file | Microcontroller board | Controller ports | Designer | Build instructions |
+| ----- | ------- | ----------- | --------------------- | ---------------- | -------- | ------------------ |
+| PicoNES v2.6 | <img src="https://github.com/user-attachments/assets/2bbc846d-56b1-4528-9899-01bc9b32ce11" width="200" alt="PicoNES v2.6"> | [pico_nesPCB_v2.6.zip](pico_nesPCB_v2.6.zip) | Raspberry Pi Pico, Pico 2 or Pimoroni Pico Plus 2 | 2 × NES | John Park | [This page](#picones-v26-nes-controller-ports) |
+| PicoNES v2.8 SNES | <img src="images/picones_v2.8s_assembled.jpg" width="200" alt="PicoNES v2.8 SNES"> | [pico_nesPCB_v2.8_SNES_PORTS.zip](pico_nesPCB_v2.8_SNES_PORTS.zip) | Raspberry Pi Pico, Pico 2 or Pimoroni Pico Plus 2 | 2 × SNES | John Park | [This page](#picones-v28-snes-controller-ports) |
+| PicoNES Mini v2.0 | <img src="https://github.com/user-attachments/assets/13933b1d-af00-402e-a0a0-8456de4a82da" width="200" alt="PicoNES Mini"> | [Gerber_PicoNES_Mini_PCB_v2.0.zip](Gerber_PicoNES_Mini_PCB_v2.0.zip) | Waveshare RP2040-Zero or RP2350-Zero | 2 × NES | Gavin Knight | [Instructables, step 1](https://www.instructables.com/PicoNES-RaspberryPi-Pico-Based-NES-Emulator/#step1) |
+| PicoNES Micro v1.2 | <img src="https://github.com/user-attachments/assets/59c8a31b-dc3e-47b0-8ffb-89e1eab2a75b" width="200" alt="PicoNES Micro"> | [Gerber_PicoNES_Micro_v1.2.zip](Gerber_PicoNES_Micro_v1.2.zip) | Waveshare RP2350-USB-A | None, USB controller only | Gavin Knight | [Instructables, step 2](https://www.instructables.com/PicoNES-RaspberryPi-Pico-Based-NES-Emulator/#step2) |
 
 Versions v2.1, v2.0 and v0.2 are older designs, see [Older designs](#older-designs).
 
