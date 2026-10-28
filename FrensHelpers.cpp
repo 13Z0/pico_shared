@@ -21,6 +21,7 @@
 // No TinyUSB bsp "board.h": the PIO USB D+ pin comes from the board header or
 // PIO_DP_PLUS_PIN, the 5V switch from PIO_USB_VBUSEN_PIN (BoardConfigs.cmake).
 #include "pio_usb.h"
+#include "pio_usb_frame.h"
 #endif
 #include "tusb.h"
 #include "hardware/dma.h"
@@ -1785,6 +1786,7 @@ const char *storage_get_flash_manufacturer_name(uint8_t manufacturerId)
         pio_cfg.pio_rx_num = PIO_USB_USE_PIO;
         pio_cfg.pio_tx_num = PIO_USB_USE_PIO;
         pio_cfg.pin_dp = PICO_DEFAULT_PIO_USB_DP_PIN;
+        pio_cfg.skip_alarm_pool = true; // pio_usb_frame.c runs the 1 ms frame (RP2350-E9 workaround)
         tuh_configure(BOARD_TUH_RHPORT, TUH_CFGID_RPI_PIO_USB_CONFIGURATION, &pio_cfg);
 #endif
 #endif
@@ -1983,6 +1985,7 @@ const char *storage_get_flash_manufacturer_name(uint8_t manufacturerId)
             .role = TUSB_ROLE_HOST,
             .speed = TUSB_SPEED_AUTO};
         tusb_init(BOARD_TUH_RHPORT, &host_init);
+        pio_usb_frame_start();
         dumpHeapStats("initAll/postTusbInit");
 
         if (board_init_after_tusb)
