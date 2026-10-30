@@ -274,6 +274,42 @@ namespace Frens
 #endif
     }
 
+#if HSTX_CUSTOM_FRAME_SIZE
+#if FRAMEBUFFERISPOSSIBLE
+    // The PicoDVI framebuffer layout, width | height << 16; see setFrameSize().
+    // One word, so core1 never sees half a change.
+    static constexpr uint32_t defaultFrameSize = SCREENWIDTH | SCREENHEIGHT << 16;
+    static volatile uint32_t frameSizeDVI = defaultFrameSize;
+#endif
+
+    bool setFrameSize(int width, int height)
+    {
+#if HSTX
+        return hstx_setFrameSize(width, height);
+#elif FRAMEBUFFERISPOSSIBLE
+        // the TMDS encoder works in groups of 4 pixels
+        if (width <= 0 || height <= 0 || (width & 3) || width > SCREENWIDTH || height > 2 * SCREENHEIGHT ||
+            width * height > SCREENWIDTH * SCREENHEIGHT)
+            return false;
+        frameSizeDVI = (uint32_t)width | (uint32_t)height << 16;
+        return true;
+#else
+        return width == SCREENWIDTH && height == SCREENHEIGHT;
+#endif
+    }
+
+    uint16_t *__not_in_flash_func(getFrameBufferLine)(int row)
+    {
+#if HSTX
+        return hstx_getlineFromFramebuffer(row);
+#elif FRAMEBUFFERISPOSSIBLE
+        return &framebuffer[row * (frameSizeDVI & 0xFFFF)];
+#else
+        return nullptr; // no framebuffer
+#endif
+    }
+#endif
+
 #define STORAGE_CMD_DUMMY_BYTES 1
 #define STORAGE_CMD_DATA_BYTES 3
 #define STORAGE_CMD_TOTAL_BYTES (STORAGE_CMD_DUMMY_BYTES + STORAGE_CMD_DATA_BYTES)
@@ -1596,6 +1632,29 @@ const char *storage_get_flash_manufacturer_name(uint8_t manufacturerId)
 
     static WORD *buffer;
 
+#if HSTX_CUSTOM_FRAME_SIZE && FRAMEBUFFERISPOSSIBLE
+    /// Core1: one frame of a framebuffer that is not 320x240 (setFrameSize()).
+    /// Each output line shows the row under its centre, so every row is on one
+    /// or two of the 480 lines, and each row is encoded once: one TMDS encode
+    /// per row. HSTX blends the lines between two rows instead; on PicoDVI that
+    /// would need an encode per line, which core1 cannot do at 252 MHz.
+    static void __not_in_flash_func(encodeScaledFrame)(const WORD *fb, uint32_t size)
+    {
+        const uint32_t w = size & 0xFFFF, h = size >> 16;
+        const uint32_t lines = 2 * SCREENHEIGHT;
+        uint32_t line = 0;
+        while (line < lines)
+        {
+            const uint32_t row = (2 * line + 1) * h / (2 * lines);
+            uint32_t end = line + 1;
+            while (end < lines && (2 * end + 1) * h / (2 * lines) == row)
+                end++;
+            dvi_->convertScanBuffer12bppRows(line, end - line, fb + row * w, w);
+            line = end;
+        }
+    }
+#endif
+
     /// @brief Render function in core1 to render the framebuffers
     /// @param
     /// @return
@@ -1611,6 +1670,16 @@ const char *storage_get_flash_manufacturer_name(uint8_t manufacturerId)
         while (true)
         {
             vsync = false;
+#if HSTX_CUSTOM_FRAME_SIZE
+            // read once: a change takes effect at the next frame
+            const uint32_t size = frameSizeDVI;
+            if (size != defaultFrameSize)
+            {
+                encodeScaledFrame(framebufferCore1, size);
+                vsync = true;
+                continue;
+            }
+#endif
             for (int line = 0; line < SCREENHEIGHT; ++line)
             {
                 // processScanLineFunction(line - startLine, framebufferCore1, buffer);
