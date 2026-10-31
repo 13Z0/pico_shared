@@ -123,8 +123,9 @@ namespace Frens
         // go before the device stack can have it. USB gamepads go away here;
         // tuh_deinit() walks the device tree and fires tuh_hid_umount_cb(), so
         // the player slots in hid_app.cpp clean themselves up.
-        // With the Video Clock Fix on, the host was never started, and must
-        // not be started on the way out either.
+        // At a CPU clock where PLL_USB clocks HSTX (isBuiltinUsbDisabled()),
+        // the host was never started, and must not be started on the way out
+        // either.
         hostTornDown = tuh_rhport_is_active(BOARD_TUH_RHPORT);
         tuh_deinit(BOARD_TUH_RHPORT);
 #endif
