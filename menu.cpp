@@ -1221,8 +1221,9 @@ bool showTextEntry(const char *prompt, char *buf, size_t bufsize)
     }
 }
 
-// Warn before committing an overclock whose target clock exceeds this (kHz).
-static constexpr uint32_t OVERCLOCK_WARN_KHZ = 378000;
+// Warn before committing an overclock whose target clock exceeds this (kHz):
+// the default overclock of FlashParams.cpp, which needs no warning.
+static constexpr uint32_t OVERCLOCK_WARN_KHZ = 384000;
 
 // Format a vreg_voltage enum as "X.XX V". The enum values are contiguous from
 // VREG_VOLTAGE_0_85 upward, so index a millivolt table by the offset.
