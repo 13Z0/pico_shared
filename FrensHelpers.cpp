@@ -2000,7 +2000,8 @@ const char *storage_get_flash_manufacturer_name(uint8_t manufacturerId)
             // PLL_USB is the HSTX clock, so the USB hardware is not running at
             // 48 MHz: do not start a host on it. tuh_task() returns at once
             // while the host stack is not initialised.
-            printf("Built-in USB port disabled (Video Clock Fix).\n");
+            printf("Built-in USB port off: PLL_USB clocks HSTX at %lu kHz.\n",
+                   (unsigned long)(clock_get_hz(clk_sys) / 1000));
         }
         else
         {
@@ -2268,32 +2269,31 @@ const char *storage_get_flash_manufacturer_name(uint8_t manufacturerId)
     // Set CPU clock to desired speed
     // Set HSTX clock to 126 MHz if HSTX is used so the HSTX display driver can output at no more than 60Hz
     // True when setClocksAndStartStdio() repurposed PLL_USB as the 126 MHz
-    // HSTX source. The native USB device controller needs PLL_USB at 48 MHz,
-    // so USB drive mode has to borrow it back for the duration.
+    // HSTX source while USB still depends on it, which leaves the built-in
+    // USB port without its 48 MHz. USB drive mode has to borrow PLL_USB back
+    // for the duration.
     static bool pllUsbTakenForHstx = false;
     static bool usbClockBorrowed = false;
-    // Set by setClocksAndStartStdio() from FlashParams, see isBuiltinUsbDisabled().
-    static bool builtinUsbDisabled = false;
 
     bool isBuiltinUsbDisabled()
     {
-        return builtinUsbDisabled;
+        return pllUsbTakenForHstx;
     }
 
     // Give the native USB controller a valid 48 MHz clock.
     //
-    // On HSTX builds that use PIO USB for gamepads, setClocksAndStartStdio()
-    // drives clk_hstx from PLL_USB at 126 MHz, because deriving it from
-    // PLL_SYS propagates CPU-clock jitter into the TMDS bit clock. That leaves
-    // clk_usb running at 126 MHz instead of 48, which is why a PC reports
-    // "USB device not recognized": the device attaches but cannot enumerate.
+    // Only needed at a clk_sys for which setClocksAndStartStdio() found no
+    // clean HSTX route other than PLL_USB (neither a multiple of 48 MHz nor
+    // 126, 252 or 504 MHz, see there). clk_usb then runs at 126 MHz instead
+    // of 48, which is why a PC reports "USB device not recognized": the
+    // device attaches but cannot enumerate.
     //
-    // clk_sys is a whole multiple of 126 MHz at the frequencies this runs at
-    // (252 and 378 MHz), so HSTX can be moved onto clk_sys for the duration
-    // and PLL_USB handed back to USB. The picture stays up; the only cost is
-    // the TMDS jitter the comment above describes, which is of no consequence
-    // for a static text screen. Returns false if the live clk_sys cannot
-    // source HSTX, in which case the caller must not enter USB drive mode.
+    // When clk_sys is a whole multiple of 126 MHz (378 MHz, divide by 3),
+    // HSTX can be moved onto clk_sys for the duration and PLL_USB handed back
+    // to USB. The picture stays up; the dots of the odd divider are of no
+    // consequence for a static text screen. Returns false if the live clk_sys
+    // cannot source HSTX, in which case the caller must not enter USB drive
+    // mode.
     bool usbDeviceClockAcquire()
     {
 #if HSTX
@@ -2401,19 +2401,19 @@ const char *storage_get_flash_manufacturer_name(uint8_t manufacturerId)
              * peaks under emulator load, so that shows up as a hard fault
              * seconds in rather than at boot.
              *
-             * Pick the smallest divisor that keeps flash <= 94.5 MHz (the
-             * rate proven at 378 MHz), and scale RXDELAY so the read sample
-             * point stays at roughly the same absolute delay in ns (3 sys
-             * cycles @ 378 MHz = 7.9 ns). At 378 this reproduces the old
-             * constant exactly (div 4, rxdelay 3 -> 0x60007304), so nothing
-             * changes for existing builds; at 504 it gives div 6 (84 MHz
-             * flash) and rxdelay 4.
+             * Pick the smallest divisor that keeps flash <= 96 MHz (94.5 MHz
+             * is the rate proven at 378 MHz; 96 lets 384 MHz keep divisor 4),
+             * and scale RXDELAY so the read sample point stays at roughly the
+             * same absolute delay in ns (3 sys cycles @ 378 MHz = 7.9 ns). At
+             * 378 this reproduces the old constant exactly (div 4, rxdelay 3
+             * -> 0x60007304), so nothing changes for existing builds; at 504
+             * it gives div 6 (84 MHz flash) and rxdelay 4.
              *
              * Field layout (RP2350 QMI M0_TIMING): COOLDOWN[31:30]=1,
              * PAGEBREAK[29:28]=2 (1024), MAX_SELECT[21:16]=0,
              * MIN_DESELECT[15:11]=14, RXDELAY[10:8], CLKDIV[7:0].
              */
-            const uint32_t max_flash_khz = 94500;
+            const uint32_t max_flash_khz = 96000;
             uint32_t flash_div = (cpuFreqKHz + max_flash_khz - 1) / max_flash_khz;
             if (flash_div < 4)
                 flash_div = 4;
@@ -2428,85 +2428,78 @@ const char *storage_get_flash_manufacturer_name(uint8_t manufacturerId)
         sleep_ms(100);
         // Reconfigure HSTX clock to 126 MHz, so display can run at 60Hz.
         //
-        // Optionally *force* the PLL_USB-sourced HSTX route even for clk_sys
-        // values that are integer multiples of 126. Reason: deriving clk_hstx
-        // from clk_sys propagates PLL_SYS jitter into the TMDS bit clock at
-        // 378 MHz and up, producing dots / short dotted lines on strict HDMI
-        // receivers (eye-pattern closure). PLL_USB at a fixed 126 MHz keeps
-        // the TMDS clock decoupled from CPU clock.
+        // Deriving clk_hstx from clk_sys with an odd divider (378 MHz / 3)
+        // produces dots / short dotted lines on strict HDMI receivers
+        // (eye-pattern closure). The cause is the divider, not PLL_SYS jitter:
+        // clk_hstx has no duty-cycle correction for odd divisors (DC50 is
+        // GPOUT only), and HSTX shifts out a bit on both clock edges, so
+        // alternate TMDS bits come out about 2.6 and 5.3 ns long instead of
+        // 4.0. Even divisors are clean: 252 / 2 and 504 / 4 from clk_sys show
+        // no dots on a display that does show them at 378 / 3. PLL_USB at a
+        // fixed 126 MHz needs no divider at all.
         //
-        // The native USB hardware needs PLL_USB at 48 MHz, and the chip has
-        // no third clean PLL to use for HSTX, so the fix costs the built-in
-        // USB port:
-        // - PIO-USB builds (CFG_TUH_RPI_PIO_USB=1) do not use that port for
-        //   gamepads, so emulators that run at 378 MHz force the fix at
-        //   compile time.
-        // - TinyUSB-native-USB builds leave it to the user: the Video Clock
-        //   Fix setting, kept in FlashParams because the SD card is not
-        //   mounted yet. With it on, initAll() does not start the USB host
-        //   and USB gamepads cannot be used.
-        bool hstx_ok = true;
-#if (SGX || GENESIS_OVERCLOCK_HSTX_FIX || NES_OVERCLOCK_FIX || SNES_OVERCLOCK_FIX) && CFG_TUH_RPI_PIO_USB
-        const bool force_pll_usb_hstx = true;
-#elif !CFG_TUH_RPI_PIO_USB
-        builtinUsbDisabled = (getFlashParamsOptions() & FLASHPARAM_OPT_HSTX_ON_PLL_USB) != 0;
-        const bool force_pll_usb_hstx = builtinUsbDisabled;
-#else
-        const bool force_pll_usb_hstx = false;
-#endif
-        if (force_pll_usb_hstx || ((cpuFreqKHz / 1000) % 126 != 0))
+        // The route follows from the clock alone, the same on every board:
+        // 1. clk_sys a whole multiple of 48 MHz (336, 384, 432, 480 MHz): USB
+        //    and ADC are divided from PLL_SYS, which leaves PLL_USB free to be
+        //    the HSTX clock at no cost.
+        // 2. clk_sys 126, 252 or 504 MHz: HSTX from clk_sys / 1, 2 or 4, and
+        //    PLL_USB keeps its 48 MHz for USB.
+        // 3. Any other clock (378 MHz, or one that is no multiple of 126 MHz):
+        //    HSTX from PLL_USB, so the built-in USB port has no 48 MHz.
+        //    initAll() then does not start a USB host on it, and USB drive
+        //    mode borrows PLL_USB back (usbDeviceClockAcquire()).
+        bool hstx_ok;
+        const uint32_t sys_hz = cpuFreqKHz * 1000;
+        const uint32_t target_hstx_hz = 126000000u;
+        const uint32_t hstx_div = sys_hz / target_hstx_hz;
+        const bool usbOnPllSys = (sys_hz % USB_CLK_HZ) == 0 && sys_hz / USB_CLK_HZ <= 16;
+        const bool hstxOnClkSys = !usbOnPllSys && (sys_hz % target_hstx_hz) == 0 &&
+                                  (hstx_div == 1 || hstx_div == 2 || hstx_div == 4);
+        if (hstxOnClkSys)
         {
-            // (Re)configure PLL_USB for 126 MHz HSTX source.
-            pll_deinit(pll_usb);
-            pll_init(pll_usb, 1, 756000000, 6, 1); // 756 / (6*1) = 126 MHz
-            // Remember that PLL_USB no longer carries 48 MHz. USB drive mode
-            // needs it back before the native USB device controller can
-            // enumerate - see usbDeviceClockAcquire().
-            pllUsbTakenForHstx = true;
-
-            const uint32_t target_hstx_hz = 126000000u;
-            hstx_ok = clock_configure(
-                clk_hstx,
-                0,
-                CLOCKS_CLK_HSTX_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                target_hstx_hz,
-                target_hstx_hz);
-
-            // Keep clk_peri sourced from PLL_SYS at sys_hz — same as the
-            // previous non-SGX path that the user has confirmed boots at
-            // 378 MHz. Re-routing clk_peri during clock init (which the
-            // earlier revision did) caused a boot loop. Peripheral drivers
-            // read clock_get_hz(clk_peri) for their own dividers, so they
-            // adapt to whatever clk_peri ends up at.
-            clock_configure(clk_peri,
-                            0,
-                            CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
-                            cpuFreqKHz * 1000,
-                            cpuFreqKHz * 1000);
+            // DO NOT touch pll_usb: keep its 48 MHz for USB.
+            hstx_ok = clock_configure(clk_hstx,
+                                      0,
+                                      CLOCKS_CLK_HSTX_CTRL_AUXSRC_VALUE_CLK_SYS,
+                                      sys_hz,
+                                      target_hstx_hz);
         }
         else
         {
-            // DO NOT touch pll_usb: keep its 48 MHz for USB.
-            // Derive 126 MHz HSTX from clk_sys (cpuFreqKHz * 1000 input).
-            // This works only when clock is set to 126, 252 or 378 MHz.
-            const uint32_t sys_hz = cpuFreqKHz * 1000;
-            const uint32_t target_hstx_hz = 126000000u;
-
-            // Select clk_sys as AUX source and let clock framework set divider.
-            hstx_ok = clock_configure(
-                clk_hstx,
-                0,
-                CLOCKS_CLK_HSTX_CTRL_AUXSRC_VALUE_CLK_SYS,
-                sys_hz,
-                target_hstx_hz);
-
-            // Keep clk_peri in sync with clk_sys
-            clock_configure(clk_peri,
-                            0,
-                            CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
-                            sys_hz,
-                            sys_hz);
+            if (usbOnPllSys)
+            {
+                // Move USB and ADC off PLL_USB before it is retuned below, so
+                // that neither ever sees it change. Both get an exact integer
+                // divider; the ADC wants the same 48 MHz as USB.
+                clock_configure(clk_usb, 0,
+                                CLOCKS_CLK_USB_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
+                                sys_hz, USB_CLK_HZ);
+                clock_configure(clk_adc, 0,
+                                CLOCKS_CLK_ADC_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
+                                sys_hz, USB_CLK_HZ);
+            }
+            // (Re)configure PLL_USB for 126 MHz HSTX source.
+            pll_deinit(pll_usb);
+            pll_init(pll_usb, 1, 756000000, 6, 1); // 756 / (6*1) = 126 MHz
+            // Remember whether USB lost its 48 MHz with it. If so, the native
+            // USB host is not started and USB drive mode needs PLL_USB back
+            // before the device controller can enumerate.
+            pllUsbTakenForHstx = !usbOnPllSys;
+            hstx_ok = clock_configure(clk_hstx,
+                                      0,
+                                      CLOCKS_CLK_HSTX_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
+                                      target_hstx_hz,
+                                      target_hstx_hz);
         }
+        // Keep clk_peri sourced from PLL_SYS at sys_hz. Re-routing clk_peri
+        // during clock init (which an earlier revision did) caused a boot
+        // loop. Peripheral drivers read clock_get_hz(clk_peri) for their own
+        // dividers, so they adapt to whatever clk_peri ends up at.
+        clock_configure(clk_peri,
+                        0,
+                        CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
+                        sys_hz,
+                        sys_hz);
 #endif
 
         stdio_init_all();

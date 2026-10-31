@@ -78,15 +78,6 @@ enum class ScanlineType : uint8_t
 #ifndef SGX
 #define SGX 0
 #endif
-#ifndef NES_OVERCLOCK_FIX
-#define NES_OVERCLOCK_FIX 0
-#endif
-#ifndef GENESIS_OVERCLOCK_HSTX_FIX
-#define GENESIS_OVERCLOCK_HSTX_FIX 0
-#endif
-#ifndef SNES_OVERCLOCK_FIX
-#define SNES_OVERCLOCK_FIX 0
-#endif
 #ifndef F_MALLOC_DEBUG
 #define F_MALLOC_DEBUG 0
 #endif
@@ -152,15 +143,16 @@ namespace Frens
     // The SPI setup done by initSDCard() stays valid across the pair.
     void unmountSDCard();
     bool remountSDCard();
-    // USB drive mode needs PLL_USB at 48 MHz, but HSTX builds with PIO USB
-    // repurpose it as the 126 MHz TMDS source. Acquire borrows it back (moving
-    // HSTX onto clk_sys) and returns false if the live clk_sys cannot source
-    // HSTX; release puts both back. No-ops on builds that never took PLL_USB.
+    // USB drive mode needs a 48 MHz USB clock, but at some CPU clocks HSTX
+    // builds repurpose PLL_USB as the 126 MHz TMDS source while USB still
+    // depends on it (see setClocksAndStartStdio()). Acquire borrows it back
+    // (moving HSTX onto clk_sys) and returns false if the live clk_sys cannot
+    // source HSTX; release puts both back. No-ops when USB kept its 48 MHz.
     bool usbDeviceClockAcquire();
     void usbDeviceClockRelease();
-    // True when the Video Clock Fix setting gave PLL_USB to HSTX on a build
-    // without PIO USB. The built-in USB port then has no 48 MHz clock, so its
-    // host stack is never started and USB gamepads cannot be used.
+    // True when setClocksAndStartStdio() gave PLL_USB to HSTX at a CPU clock
+    // from which USB cannot be divided. The built-in USB port then has no
+    // 48 MHz clock, so its host stack is never started.
     bool isBuiltinUsbDisabled();
     bool applyScreenMode(ScreenMode screenMode_);
     bool screenMode(int incr);

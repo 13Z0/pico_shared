@@ -128,7 +128,6 @@ namespace FrensSettings
         printf("menuOverscan: %d\n", settings.flags.menuOverscan);
         printf("genesisPad: %d\n", settings.flags.genesisPad);
         printf("nesPalette: %d\n", settings.flags.nesPalette);
-        printf("hstxClockFix: %d\n", settings.flags.hstxClockFix);
         printf("snesButtonLayout: %d\n", settings.flags.snesButtonLayout);
         printf("tateMode: %d\n", settings.flags.tateMode);
         printf("\n");
@@ -173,7 +172,7 @@ namespace FrensSettings
         settings.flags.menuOverscan = 0; // default: menu uses the whole screen
         settings.flags.genesisPad = 0; // default: Auto, the cartridge header decides between 3 and 6 buttons
         settings.flags.nesPalette = 0; // default: the palette the board has always used
-        settings.flags.hstxClockFix = 0; // default: HSTX from clk_sys, built-in USB port available
+        settings.flags.unusedVideoClockFix = 0; // retired bit, see settings.h
         settings.flags.snesButtonLayout = 0; // default: NES layout, the buttons games have always used
         settings.flags.tateMode = 0; // default: vertical games turned upright for a normal monitor
         settings.flags.reserved = 0;  // clear spare bits
