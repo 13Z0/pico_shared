@@ -11,10 +11,8 @@
 // written before it existed hold uninitialised stack bytes in the padding, so
 // FLASHPARAM_MAGIC alone cannot tell a real options word from garbage.
 #define FLASHPARAM_OPTIONS_MAGIC 0x3154504Fu // "OPT1"
-// Clock HSTX from PLL_USB at 126 MHz instead of from clk_sys. Removes the
-// clk_sys jitter from the TMDS clock (dots on some displays at 378 MHz and up),
-// but PLL_USB can then no longer give the built-in USB port its 48 MHz.
-#define FLASHPARAM_OPT_HSTX_ON_PLL_USB (1u << 0)
+// Option bits. Bit 0 was the Video Clock Fix (HSTX from PLL_USB), retired when
+// 384 MHz replaced 378 MHz. Boards may still have it set: do not reuse it.
 
 
 
@@ -38,7 +36,6 @@ namespace Frens {
     bool validateFlashParams(const FlashParams &params);
     uint32_t getFlashParamsOptions();
     bool writeFlashParamsToFlash(uint32_t cpuFreqKHz, vreg_voltage voltage, uint32_t options);
-    bool writeFlashParamsOptions(uint32_t options);
     void reconcileSettingsWithFlashParams();
 
     void setOverclockLimits(uint32_t minFreqKHz, uint32_t maxFreqKHz, vreg_voltage minVoltage, vreg_voltage maxVoltage);
