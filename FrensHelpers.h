@@ -202,6 +202,20 @@ namespace Frens
     uint64_t time_us();
     uint32_t time_ms();
     bool isFrameBufferUsed();
+#if HSTX_CUSTOM_FRAME_SIZE
+    // Framebuffer layout on both video back-ends (HSTX and the PicoDVI
+    // framebuffer). Only built with HSTX_CUSTOM_FRAME_SIZE=1 in the app's CMake.
+    // The contract of hstx_setFrameSize(): 320x240 is the default and shows as
+    // always; any other size is pixel-doubled and centred, and its rows are
+    // scaled to the 480 lines. HSTX blends a line that straddles two rows;
+    // PicoDVI shows the nearer row, so a row is on one or two lines, and needs
+    // the width to be a multiple of 4. PicoDVI scanlines blank every odd line,
+    // which would hide rows, so an app should not offer them with a custom size.
+    // Returns false, and leaves the layout as it was, if the size does not fit.
+    bool setFrameSize(int width, int height);
+    // A row of the framebuffer, at the stride of the current layout.
+    uint16_t *getFrameBufferLine(int row);
+#endif
     void getFsInfo(char *fstype, size_t fstypeSize);
 #if !HSTX && 0
     
