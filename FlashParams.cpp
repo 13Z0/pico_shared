@@ -19,8 +19,12 @@
 #define FLASHPARAM_MAX_VOLTAGE vreg_voltage::VREG_VOLTAGE_1_30
 #endif
 #else
-#define FLASHPARAM_MAX_FREQ_KHZ 378000 // May cause artifacts on some screens, 336000 seems stable 
-                                       // https://github.com/fhoedemakers/retroJam/issues/7
+// 8 x 48 MHz: USB is divided from PLL_SYS, so PLL_USB can be the HSTX clock
+// without costing the built-in USB port (see setClocksAndStartStdio()).
+#define FLASHPARAM_MAX_FREQ_KHZ 384000
+// The overclock before 384 MHz. FlashParams written with it are moved on, see
+// reconcileSettingsWithFlashParams().
+#define FLASHPARAM_LEGACY_MAX_FREQ_KHZ 378000
 #define FLASHPARAM_MAX_VOLTAGE vreg_voltage::VREG_VOLTAGE_1_50
 #endif
 // Helper functions to manage FlashParams in flash memory.
@@ -169,18 +173,6 @@ namespace Frens
         return writeFlashParamsToFlash(_minFreq, _minVoltage, getFlashParamsOptions());
     }
 
-    /// @brief Write new options to flash and reboot, keeping the clock the board runs at now.
-    /// @param options The FLASHPARAM_OPT_* bits.
-    /// @return false when the params could not be written; does not return otherwise.
-    bool writeFlashParamsOptions(uint32_t options)
-    {
-        if (clock_get_hz(clk_sys) / 1000 == _maxFreq)
-        {
-            return writeFlashParamsToFlash(_maxFreq, _maxVoltage, options);
-        }
-        return writeFlashParamsToFlash(_minFreq, _minVoltage, options);
-    }
-
     /// @brief Bring the settings file and FlashParams back in line. Call right after
     /// the settings are loaded.
     ///
@@ -189,18 +181,31 @@ namespace Frens
     /// another board, or after the settings were reset (a new SETTINGS_VERSION, or the
     /// file deleted) while FlashParams survived.
     ///
-    /// A setting that is ON where FlashParams says off is turned off in the settings:
-    /// switching something on is left to the menu, with its warnings. The other way
-    /// round the settings win and FlashParams is rewritten, which reboots the board:
-    /// - Overclock OFF but FlashParams at the overclock goes back to the normal clock.
-    /// - A Video Clock Fix that is on in flash but off in the settings is turned off in
-    ///   flash. That keeps a way back for someone whose only controller is a USB pad on
-    ///   the built-in port: delete the settings file on a PC.
+    /// Overclock ON where FlashParams says off is turned off in the settings: switching
+    /// it on is left to the menu, with its warning. The other way round the settings win
+    /// and FlashParams goes back to the normal clock, which reboots the board.
+    ///
+    /// FlashParams still at the 378 MHz overclock of older firmware are first moved to
+    /// the 384 MHz that replaced it, which also reboots. Without that they would no
+    /// longer validate, and the overclock would quietly turn itself off.
     void reconcileSettingsWithFlashParams()
     {
 #if HW_CONFIG != 7 && HW_CONFIG != 16
         bool dirty = false;
         const FlashParams *params = getFlashParams();
+#if HSTX
+        if (_maxFreq == FLASHPARAM_MAX_FREQ_KHZ &&
+            strncmp(params->magic, FLASHPARAM_MAGIC, sizeof(FLASHPARAM_MAGIC)) == 0 &&
+            params->cpuFreqKHz == FLASHPARAM_LEGACY_MAX_FREQ_KHZ && params->voltage == _maxVoltage)
+        {
+            printf("FlashParams at the old %u kHz overclock, moving them to %u kHz.\n",
+                   (unsigned)FLASHPARAM_LEGACY_MAX_FREQ_KHZ, (unsigned)_maxFreq);
+            if (!writeFlashParamsToFlash(_maxFreq, _maxVoltage, getFlashParamsOptions()))
+            {
+                printf("Failed to write FlashParams\n");
+            }
+        }
+#endif
         // Left alone, the menu shows Overclock ON at the normal clock, and the next save
         // of any setting switches to the overclock without the warning.
         if (settings.flags.overclock && !(validateFlashParams(*params) && params->cpuFreqKHz == _maxFreq))
@@ -209,24 +214,12 @@ namespace Frens
             settings.flags.overclock = 0;
             dirty = true;
         }
-#if HSTX && !CFG_TUH_RPI_PIO_USB
-        const bool clockFixInFlash = (getFlashParamsOptions() & FLASHPARAM_OPT_HSTX_ON_PLL_USB) != 0;
-        // Never the other way round: a moved SD card must not switch off the built-in
-        // USB port of the board it is moved to.
-        if (settings.flags.hstxClockFix && !clockFixInFlash)
-        {
-            printf("Video Clock Fix is on in the settings but not in FlashParams, turning it off.\n");
-            settings.flags.hstxClockFix = 0;
-            dirty = true;
-        }
-#endif
         if (dirty)
         {
             FrensSettings::savesettings();
         }
 
-        // From here the settings win. Both changes go in one write.
-        bool clockDown = false;
+        // From here the settings win.
 #if !SGX && !RETROJAM
         // Left alone, the board keeps running at the overclock with the menu showing it
         // OFF, until the next save of any setting. FM sound (SMS) needs the max clock
@@ -237,27 +230,12 @@ namespace Frens
             validateFlashParams(*params) && params->cpuFreqKHz == _maxFreq)
         {
             printf("Overclock is off in the settings, turning it off in FlashParams.\n");
-            clockDown = true;
-        }
-#endif
-        const uint32_t oldOptions = getFlashParamsOptions();
-        uint32_t newOptions = oldOptions;
-#if HSTX && !CFG_TUH_RPI_PIO_USB
-        if (clockFixInFlash && !settings.flags.hstxClockFix)
-        {
-            printf("Video Clock Fix is off in the settings, turning it off in FlashParams.\n");
-            newOptions &= ~FLASHPARAM_OPT_HSTX_ON_PLL_USB;
-        }
-#endif
-        if (clockDown || newOptions != oldOptions)
-        {
-            bool ok = clockDown ? writeFlashParamsToFlash(_minFreq, _minVoltage, newOptions)
-                                : writeFlashParamsOptions(newOptions);
-            if (!ok)
+            if (!WriteMinValuesToFlash())
             {
                 printf("Failed to write FlashParams\n");
             }
         }
+#endif
 #endif
     }
 } // namespace Frens

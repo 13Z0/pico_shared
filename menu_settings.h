@@ -46,7 +46,6 @@ enum MenuSettingsIndex {
     MOPT_MENU_OVERSCAN,   // Blank menu edges for TVs that cut them off. Listed below the menu colors, see menu.cpp
     MOPT_GENESIS_PAD,     // Genesis: present a 3 or 6 button pad (Auto: the cartridge header decides)
     MOPT_NES_PALETTE,     // NES: color palette. Listed after Scanline Type, see menu.cpp
-    MOPT_HSTX_CLOCK_FIX,  // HSTX without PIO USB: HSTX from PLL_USB, built-in USB port off. Listed after Overclock, in-game too with a visibility of 2, see menu.cpp
     MOPT_BUTTON_LAYOUT,   // NES: NES B/A on SNES Y/B (SNES) or SNES B/A (NES). Listed before Rapid Fire on A, see menu.cpp
     MOPT_TATE_MODE,       // Vertical arcade games: upright picture or tate for a turned monitor. Listed under Scanline Type, see menu.cpp
     MOPT_COUNT
@@ -91,7 +90,6 @@ const char* const g_settings_descriptions[MOPT_COUNT] = {
     [MOPT_MENU_OVERSCAN]             = "Blank menu edges for TV overscan",
     [MOPT_GENESIS_PAD]               = "3 or 6 button pad (Auto: game decides)",
     [MOPT_NES_PALETTE]               = "Colors used to draw the game",
-    [MOPT_HSTX_CLOCK_FIX]            = "Fixes dots or lines on some TVs", // the USB controller cost is in the box, see menu.cpp
     [MOPT_BUTTON_LAYOUT]             = "SNES: Y and B are NES B and A in game",
     [MOPT_TATE_MODE]                 = "Picture for a monitor turned on its side",
 };
